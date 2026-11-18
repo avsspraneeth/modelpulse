@@ -26,37 +26,51 @@ A local LLM usage dashboard for **oMLX + Hermes Agent** — live throughput, per
 
 ### Dashboard Overview
 
-![Dashboard](preview.png)
+Full dashboard with all stat cards, live throughput chart, and recent requests table.
 
-### Token Usage Breakdown
+![Dashboard Overview](dashboard-overview.png)
 
-Shows the In / Cached / Out / Think breakdown — the core accounting that makes ModelPulse more transparent than raw token counters.
+### Live Throughput
 
-![Token Breakdown](token-breakdown.png)
+Real-time tok/s chart over the last 10 minutes with window average and request count.
+
+![Live Throughput](live-throughput.png)
+
+### Memory Panel
+
+GPU memory breakdown showing model weights, headroom, and OS wired memory.
+
+![Memory Panel](memory-panel.png)
+
+### Context Window
+
+Prompt tokens per request chart showing context window utilization over time.
+
+![Context Window](context-window.png)
+
+### Token Usage
+
+Live token breakdown bars — In (fresh input), Cached, Out (output), and Think (reasoning).
+
+![Token Usage](token-usage.png)
+
+### Stats Panel
+
+Live stats (tokens/min, active requests, TTFT, peak tok/s) and lifetime stats (today/week, cache savings, reasoning ratio, peak day, generation time).
+
+![Stats Panel](stats-panel.png)
 
 ### Usage Heatmap
 
-GitHub-style contribution grid showing token usage over the last 90 days, hour by hour.
+GitHub-style contribution grid showing token usage over the last 90 days.
 
-![Heatmap](heatmap.png)
+![Usage Heatmap](usage-heatmap.png)
 
-### Model Comparison
+### Models Table
 
-Per-model request counts, throughput, and cache hit rates — see which models are doing the heavy lifting.
+Per-model cumulative stats — requests, tokens, tok/s, and cache hit rate.
 
-![Models](models.png)
-
-### Memory Usage
-
-Circular gauge showing model weights vs. total memory ceiling, with context window and headroom.
-
-![Memory](memory.png)
-
-### Usage Statistics
-
-12 stat cards covering throughput, cache savings, reasoning ratio, generation time, and more.
-
-![Stats](stats.png)
+![Models Table](models-table.png)
 
 ## The universal design
 
