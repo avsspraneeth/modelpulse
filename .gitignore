@@ -1,0 +1,17 @@
+# Database files (persistent, machine-specific)
+pulse.db
+pulse.db-wal
+pulse.db-shm
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# PID file
+.modelpulse.pid
+
+# OS files
+.DS_Store
