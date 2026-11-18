@@ -22,6 +22,42 @@ A local LLM usage dashboard for **oMLX + Hermes Agent** — live throughput, per
 | **Sessions** | Hermes sessions with token attribution | Hermes `state.db` (persisted) |
 | **Recent requests** | live per-request feed (model, prompt, out, tok/s, TTFT, finish) | oMLX `server.log` (tailed) |
 
+## Screenshots
+
+### Dashboard Overview
+
+![Dashboard](preview.png)
+
+### Token Usage Breakdown
+
+Shows the In / Cached / Out / Think breakdown — the core accounting that makes ModelPulse more transparent than raw token counters.
+
+![Token Breakdown](token-breakdown.png)
+
+### Usage Heatmap
+
+GitHub-style contribution grid showing token usage over the last 90 days, hour by hour.
+
+![Heatmap](heatmap.png)
+
+### Model Comparison
+
+Per-model request counts, throughput, and cache hit rates — see which models are doing the heavy lifting.
+
+![Models](models.png)
+
+### Memory Usage
+
+Circular gauge showing model weights vs. total memory ceiling, with context window and headroom.
+
+![Memory](memory.png)
+
+### Usage Statistics
+
+12 stat cards covering throughput, cache savings, reasoning ratio, generation time, and more.
+
+![Stats](stats.png)
+
 ## The universal design
 
 Token usage is sourced from **oMLX** (the OpenAI-compatible server on `:8000`), which every local-model harness — Hermes, Codex, Claude Code, Aider, … — flows through. So ModelPulse does **not** need to query each harness for tokens; one source covers all of them.
