@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ModelPulse</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#11161f; --panel2:#0d1219; --border:#1e2632;
+    --fg:#e6edf3; --muted:#8b98a9; --dim:#5b6675;
+    --accent:#39d353; --accent2:#58a6ff; --warn:#e3b341; --hot:#ff7b72;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent2);text-decoration:none}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,14,20,.85);backdrop-filter:blur(8px);z-index:10}
+  .brand{font-weight:700;font-size:17px;letter-spacing:.3px;display:flex;align-items:center;gap:9px}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--dim);box-shadow:0 0 0 0 rgba(57,211,83,.5);transition:all .3s}
+  .brand .dot.live{background:var(--accent);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(57,211,83,.5)}70%{box-shadow:0 0 0 8px rgba(57,211,83,0)}100%{box-shadow:0 0 0 0 rgba(57,211,83,0)}}
+  .status{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status .ok{color:var(--accent)} .status .err{color:var(--hot)}
+  main{padding:20px 22px 60px;max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+  .cards{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+  @media(max-width:1000px){.cards{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:620px){.cards{grid-template-columns:repeat(2,1fr)}}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:12px;padding:14px 15px;position:relative;overflow:hidden}
+  .card .label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px}
+  .card .value{font-family:var(--mono);font-size:24px;font-weight:600;line-height:1;letter-spacing:-.5px}
+  .card .sub{font-size:11px;color:var(--dim);margin-top:7px;font-family:var(--mono)}
+  .card .value.accent{color:var(--accent)} .card .value.blue{color:var(--accent2)}
+  .grid-2{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}
+  @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+  .panel h2{margin:0 0 4px;font-size:14px;font-weight:600;display:flex;align-items:baseline;gap:8px}
+  .panel h2 .sub{font-size:11px;color:var(--dim);font-weight:400;font-family:var(--mono)}
+  .panel .desc{font-size:12px;color:var(--muted);margin-bottom:14px}
+  canvas{width:100%;display:block}
+  .legend{display:flex;gap:18px;margin-top:10px;font-size:11px;color:var(--muted);font-family:var(--mono);flex-wrap:wrap}
+  .legend .k{display:flex;align-items:center;gap:6px}
+  .legend .swatch{width:16px;height:3px;border-radius:2px}
+  .big-now{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--accent);line-height:1}
+  .big-now .unit{font-size:13px;color:var(--muted);font-weight:400;margin-left:4px}
+  /* memory */
+  .memrow{margin-bottom:14px}
+  .memrow .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+  .memrow .top .name{color:var(--muted)} .memrow .top .val{font-family:var(--mono);color:var(--fg)}
+  .bar{height:9px;background:#0a0f16;border-radius:5px;overflow:hidden;border:1px solid var(--border)}
+  .bar > i{display:block;height:100%;border-radius:5px;transition:width .6s ease}
+  .using{margin-top:16px;border-top:1px solid var(--border);padding-top:14px}
+  .using h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .sess{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(30,38,50,.5);font-size:12px}
+  .sess:last-child{border-bottom:none}
+  .sess .l{display:flex;align-items:center;gap:8px;min-width:0}
+  .sess .badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px;background:#16202c;color:var(--accent2);white-space:nowrap}
+  .sess .badge.active{background:rgba(57,211,83,.15);color:var(--accent)}
+  .sess .name{color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sess .r{font-family:var(--mono);color:var(--muted);white-space:nowrap}
+  /* heatmap */
+  .hm-wrap{overflow-x:auto;padding-bottom:6px}
+  .hm{display:inline-flex;flex-direction:column;gap:2px}
+  .hm .row{display:flex;gap:2px;align-items:center}
+  .hm .cell{width:13px;height:13px;border-radius:2.5px;background:#161b22}
+  .hm .dow{width:26px;font-size:10px;color:var(--dim);font-family:var(--mono);text-align:right;padding-right:6px}
+  .hm .weeklabel{font-size:10px;color:var(--dim);font-family:var(--mono);height:13px;display:flex;align-items:center}
+  .hm-scale{display:flex;align-items:center;gap:4px;margin-top:12px;font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .hm-scale .cell{width:12px;height:12px}
+  .hourstrip{display:flex;gap:2px;margin-top:8px}
+  .hourstrip .h{flex:1;height:34px;border-radius:3px;background:#161b22;position:relative;min-width:8px}
+  .hourstrip .h .tip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#1c2530;border:1px solid var(--border);padding:4px 7px;border-radius:5px;font-size:10px;font-family:var(--mono);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;z-index:5}
+  .hourstrip .h:hover .tip{opacity:1}
+  .hourlabels{display:flex;gap:2px;margin-top:4px}
+  .hourlabels span{flex:1;text-align:center;font-size:9px;color:var(--dim);font-family:var(--mono);min-width:8px}
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;border-bottom:1px solid var(--border)}
+  td{padding:9px 10px;border-bottom:1px solid rgba(30,38,50,.4);font-family:var(--mono)}
+  td.name{font-family:var(--sans);color:var(--fg)}
+  tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right}
+  .pill{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:10px;background:#16202c;color:var(--muted)}
+  .pill.tool{color:var(--accent2)} .pill.stop{color:var(--accent)} .pill.len{color:var(--warn)}
+  .empty{color:var(--dim);font-size:12px;padding:20px;text-align:center;font-family:var(--mono)}
+  footer{padding:16px 22px;color:var(--dim);font-size:11px;font-family:var(--mono);border-top:1px solid var(--border);text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot" id="dot"></span>ModelPulse</div>
+  <div style="display:flex;align-items:center;gap:18px">
+    <a href="/settings" style="font-size:12px;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);padding:5px 10px;border-radius:7px">⚙ Settings</a>
+    <div class="status" id="status">connecting…</div>
+  </div>
+</header>
+<main>
+  <section class="cards" id="cards">
+    <div class="card" title="Total = In + Cached + Out.  In = fresh input tokens, Cached = prompt tokens served from cache, Out = tokens generated (includes Think).  Think = reasoning/thinking tokens (Hermes profile)."><div class="label">Total tokens</div><div class="value" id="c-tokens">–</div><div class="sub" id="c-tokens-sub"></div></div>
+    <div class="card"><div class="label">Requests</div><div class="value" id="c-req">–</div><div class="sub" id="c-req-sub"></div></div>
+    <div class="card"><div class="label">Avg tok/s</div><div class="value blue" id="c-avg">–</div><div class="sub">decode · all time</div></div>
+    <div class="card"><div class="label">Cache hit</div><div class="value" id="c-cache">–</div><div class="sub" id="c-cache-sub"></div></div>
+    <div class="card" title="The most recent completed request's decode tok/s — an average over that request's generation, from the oMLX log. There is no finer 'instant' value in the log."><div class="label">Last req tok/s</div><div class="value accent" id="c-cur">–</div><div class="sub" id="c-cur-sub">per-request avg</div></div>
+    <div class="card"><div class="label">GPU memory</div><div class="value" id="c-gpu">–</div><div class="sub" id="c-gpu-sub"></div></div>
+  </section>
+
+  <section class="grid-2">
+    <div class="panel">
+      <h2>Live throughput <span class="sub">tok/s · last 10 min</span></h2>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin:6px 0 10px">
+        <div class="big-now"><span id="now-tps">0</span><span class="unit">tok/s · window avg</span></div>
+        <div class="sub" style="font-family:var(--mono);font-size:12px;color:var(--muted)"><span id="now-reqcount">0</span> requests</div>
+      </div>
+      <canvas id="liveChart" height="220"></canvas>
+      <div class="legend">
+        <div class="k"><span class="swatch" style="background:var(--accent);border-radius:50%;width:8px;height:8px"></span>per-request tok/s</div>
+        <div class="k"><span class="swatch" style="background:var(--accent2);border-top:2px dashed var(--accent2);height:0"></span>window avg</div>
+        <div class="k" id="last-req" style="margin-left:auto"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Memory <span class="sub">unified / GPU</span></h2>
+      <div class="memrow">
+        <div class="top"><span class="name">Model weights</span><span class="val" id="m-model">–</span></div>
+        <div class="bar"><i id="b-model" style="background:linear-gradient(90deg,#8957e5,#bc8cff);width:0%"></i></div>
+      </div>
+      <div class="memrow">
+        <div class="top"><span class="name">Headroom for context / KV</span><span class="val" id="m-head">–</span></div>
+        <div class="bar"><i id="b-head" style="background:linear-gradient(90deg,#238636,#39d353);width:0%"></i></div>
+      </div>
+      <div class="memrow">
+        <div class="top"><span class="name">OS wired (live)</span><span class="val" id="m-wired">–</span></div>
+        <div class="bar"><i id="b-wired" style="background:linear-gradient(90deg,#1f6feb,#58a6ff);width:0%"></i></div>
+      </div>
+      <div class="memrow" style="margin-bottom:0">
+        <div class="top"><span class="name">Context window</span><span class="val" id="m-ctx">–</span></div>
+        <div class="bar"><i id="b-ctx" style="background:linear-gradient(90deg,#e3b341,#f0c674);width:0%"></i></div>
+        <div style="font-size:11px;color:var(--dim);margin-top:5px;font-family:var(--mono)" id="m-ctx-sub"></div>
+      </div>
+      <div class="using">
+        <h3>What's using it</h3>
+        <div id="using-model" style="font-size:12px;margin-bottom:10px;color:var(--muted)"></div>
+        <div id="using-sessions"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="panel">
+      <h2>Context window <span class="sub">prompt tokens per request · last 10 min</span></h2>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin:6px 0 10px">
+        <div class="big-now" style="color:var(--accent2)"><span id="ctx-now">0</span><span class="unit">tokens</span></div>
+        <div style="font-family:var(--mono);font-size:12px;color:var(--muted)">peak <span id="ctx-peak" style="color:var(--warn)">0</span></div>
+      </div>
+      <canvas id="ctxChart" height="220"></canvas>
+      <div class="legend">
+        <div class="k"><span class="swatch" style="background:var(--accent2)"></span>context size (prompt)</div>
+        <div class="k" id="ctx-model" style="margin-left:auto"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Token usage <span class="sub">live · all sources</span></h2>
+      <div class="desc" style="margin-bottom:12px">
+        <span style="color:var(--accent2)">In</span> = fresh input · <span style="color:var(--dim)">Cached</span> = cache hits · <span style="color:var(--accent)">Out</span> = generated · <span style="color:var(--warn)">Think</span> = reasoning/thinking
+      </div>
+      <div id="tokBars"></div>
+      <div class="using" style="margin-top:14px">
+        <h3>Live session counter</h3>
+        <div id="tokActive" style="font-size:12px;font-family:var(--mono);color:var(--muted)"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Stats <span class="sub">live + lifetime</span></h2>
+    <div class="grid-2" style="margin-top:14px">
+      <div>
+        <h3 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Live</h3>
+        <div id="statsLive"></div>
+      </div>
+      <div>
+        <h3 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Lifetime</h3>
+        <div id="statsPersistent"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Usage heatmap <span class="sub">last 90 days · tokens per day</span></h2>
+    <div class="desc">Each square is a day, colored by total tokens processed (prompt + completion). Data is stored in ModelPulse's own database and survives oMLX's 90-day stats rotation.</div>
+    <div class="hm-wrap"><div class="hm" id="dailyHm"></div></div>
+    <div class="hm-scale" id="hmScale"></div>
+    <div style="margin-top:20px">
+      <h2 style="font-size:13px">Hour of day <span class="sub">when usage peaks</span></h2>
+      <div class="hourstrip" id="hourStrip"></div>
+      <div class="hourlabels" id="hourLabels"></div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="panel">
+      <h2>Models <span class="sub">cumulative</span></h2>
+      <table id="modelsTable"><thead><tr>
+        <th>Model</th><th class="num">Req</th><th class="num">Tokens</th><th class="num">Out</th><th class="num">tok/s</th><th class="num">Cache</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+    <div class="panel">
+      <h2>Sessions <span class="sub">Hermes · attribution</span></h2>
+      <table id="sessionsTable"><thead><tr>
+        <th>Session</th><th>Src</th><th class="num">In</th><th class="num">Out</th><th>Started</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Recent requests <span class="sub">live from oMLX server log</span></h2>
+    <table id="requestsTable"><thead><tr>
+      <th>Time</th><th>Model</th><th class="num">Prompt</th><th class="num">Out</th><th class="num">tok/s</th><th class="num">TTFT</th><th>Finish</th>
+    </tr></thead><tbody></tbody></table>
+  </section>
+</main>
+<footer>ModelPulse · sources: oMLX server.log + usage.sqlite3 + stats.json · Hermes state.db · vm_stat + Splash /health · own DB: ~/modelpulse/pulse.db</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+async function get(p){const r=await fetch(p,{cache:'no-store'});if(!r.ok)throw new Error(p+' '+r.status);return r.json();}
+function fmt(n){if(n==null||isNaN(n))return'–';if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return Math.round(n).toString();}
+function fmtB(b){if(!b)return'–';if(b>=1e12)return(b/1e12).toFixed(2)+' TB';if(b>=1e9)return(b/1e9).toFixed(2)+' GB';if(b>=1e6)return(b/1e6).toFixed(1)+' MB';return Math.round(b/1e3)+' KB';}
+function fmtT(ts){return new Date(ts*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function fmtDT(ts){return new Date(ts*1000).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+function esc(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+let okCount=0,errCount=0;
+function setStatus(ok,msg){
+  $('dot').classList.toggle('live',ok);
+  if(ok){okCount++;errCount=0;}else{errCount++;}
+  const t=new Date().toLocaleTimeString();
+  $('status').innerHTML=ok?`<span class="ok">● live</span> · ${msg} · ${t}`:`<span class="err">● ${msg}</span> · ${t}`;
+}
+
+// ---- summary cards ----
+async function updateSummary(){
+  try{
+    const s=await get('/api/summary');
+    const t=await get('/api/tokens-live');
+    $('c-tokens').textContent=fmt(t.total);
+    $('c-tokens-sub').innerHTML=
+      `<span style="color:var(--accent2)">In ${fmt(t.fresh_input)}</span> · `+
+      `<span style="color:var(--dim)">Cached ${fmt(t.cached)}</span><br>`+
+      `<span style="color:var(--accent)">Out ${fmt(t.output)}</span> · `+
+      `<span style="color:var(--warn)">Think ${fmt(t.reasoning)}</span>`;
+    $('c-req').textContent=fmt(s.total_requests);
+    $('c-req-sub').textContent=`${fmt(s.cached_tokens)} cached`;
+    $('c-avg').textContent=s.avg_tps.toFixed(1);
+    $('c-cache').textContent=(s.cache_hit_rate*100).toFixed(0)+'%';
+    $('c-cache-sub').textContent='of prompt tokens';
+    $('c-cur').textContent=s.last_request?s.last_request.tps.toFixed(1):'–';
+    $('c-cur-sub').textContent=s.last_request?`${s.last_request.model.split('-').slice(-2).join('-')} · ${Math.max(0,Math.round(s.now-s.last_request.ts))}s ago`:'idle';
+    $('c-gpu').textContent=fmtB(s.memory.wired_bytes);
+    $('c-gpu-sub').textContent=`weights ${fmtB(s.memory.model_bytes)}`;
+    setStatus(true,'ok');
+  }catch(e){setStatus(false,'summary: '+e.message);}
+}
+
+// ---- token usage panel (In / Cached / Out / Think + live session) ----
+async function updateTokens(){
+  try{
+    const t=await get('/api/tokens-live');
+    const parts=[
+      {label:'In (fresh input)',val:t.fresh_input,color:'var(--accent2)'},
+      {label:'Cached',val:t.cached,color:'var(--dim)'},
+      {label:'Out (generated)',val:t.output,color:'var(--accent)'},
+      {label:'Think (reasoning)',val:t.reasoning,color:'var(--warn)'},
+    ];
+    const max=Math.max(...parts.map(p=>p.val),1);
+    $('tokBars').innerHTML=parts.map(p=>`
+      <div class="memrow">
+        <div class="top"><span class="name">${p.label}</span><span class="val">${fmt(p.val)}</span></div>
+        <div class="bar"><i style="background:${p.color};width:${Math.min(100,p.val/max*100)}%"></i></div>
+      </div>`).join('');
+    const a=t.active_session;
+    if(a){
+      $('tokActive').innerHTML=
+        `<div style="margin-bottom:6px">Session: <span style="color:var(--fg)">${esc((a.display_name||a.model||'').slice(0,26))}</span></div>`+
+        `<div>In ${fmt(a.input_tokens)} · Out ${fmt(a.output_tokens)} · <span style="color:var(--warn)">Think ${fmt(a.reasoning_tokens)}</span></div>`+
+        `<div style="margin-top:5px;color:var(--dim)">all active (${t.active_sessions.count}): In ${fmt(t.active_sessions.input)} · Out ${fmt(t.active_sessions.output)} · Think ${fmt(t.active_sessions.reasoning)}</div>`;
+    }else{
+      $('tokActive').textContent='no active session';
+    }
+  }catch(e){}
+}
+
+// ---- stats panel (live + lifetime) ----
+async function updateStats(){
+  try{
+    const d=await get('/api/stats');
+    const L=d.live,P=d.persistent;
+    const row=(k,v)=>`<div class="memrow"><div class="top"><span class="name">${k}</span><span class="val">${v}</span></div></div>`;
+    $('statsLive').innerHTML=[
+      row('Tokens / min',fmt(L.tokens_per_min)),
+      row('Active requests',L.active_requests),
+      row('Avg TTFT (1h)',L.avg_ttft!=null?L.avg_ttft.toFixed(1)+'s':'–'),
+      row('Peak tok/s (10m)',L.peak_tps.toFixed(1)),
+      row('Generated (last 60s)',fmt(L.generated_last_60s)),
+    ].join('');
+    $('statsPersistent').innerHTML=[
+      row('Tokens today',fmt(P.tokens_today)),
+      row('Tokens this week',fmt(P.tokens_this_week)),
+      row('Cache savings',fmt(P.cache_savings)),
+      row('Reasoning ratio',(P.reasoning_ratio*100).toFixed(0)+'% of out'),
+      row('Avg tokens / request',fmt(P.avg_tokens_per_request)),
+      row('Peak day',P.peak_day?`${P.peak_day.date} · ${fmt(P.peak_day.tokens)}`:'–'),
+      row('Generation time',P.total_generation_hours+' h'),
+      row('Total cost',P.total_cost_usd>0?'$'+P.total_cost_usd:'local (free)'),
+    ].join('');
+  }catch(e){}
+}
+
+// ---- live chart (scatter of per-request tok/s) ----
+let livePts=[];
+function drawLive(){
+  const cv=$('liveChart');const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth,H=220;cv.width=W*dpr;cv.height=H*dpr;
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
+  const padL=44,padR=12,padT=12,padB=22;
+  const pw=W-padL-padR,ph=H-padT-padB;
+  if(!livePts.length){ctx.fillStyle='#5b6675';ctx.font='12px monospace';ctx.fillText('waiting for requests…',padL,ph/2);$('now-tps').textContent='0';$('now-reqcount').textContent='0';return;}
+  const now=Date.now()/1000;const span=600;
+  const t0=now-span;
+  const maxV=Math.max(20,...livePts.map(p=>p.tps))*1.15;
+  const X=t=>padL+((t-t0)/span)*pw;
+  const Y=v=>padT+ph-(v/maxV)*ph;
+  // gridlines
+  ctx.strokeStyle='rgba(30,38,50,.6)';ctx.fillStyle='#5b6675';ctx.font='10px monospace';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const v=maxV*i/4;const y=Y(v);ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();ctx.fillText(v.toFixed(0),6,y+3);}
+  // time labels (edge-aligned so the last one isn't clipped)
+  for(let i=0;i<=6;i++){const t=t0+span*i/6;ctx.textAlign=i===0?'left':(i===6?'right':'center');ctx.fillText(fmtT(t),i===0?padL:(i===6?W-padR:X(t)),H-6);}
+  ctx.textAlign='left';
+  // scatter: one dot per completed request (each dot = that request's avg tok/s)
+  const active=livePts.filter(p=>p.ts>=t0);
+  active.forEach(p=>{ctx.beginPath();ctx.arc(X(p.ts),Y(p.tps),3.2,0,Math.PI*2);ctx.fillStyle='rgba(57,211,83,.9)';ctx.fill();});
+  // window average, compiled from the request points
+  const vals=active.filter(p=>p.tps>0);const avg=vals.length?vals.reduce((a,b)=>a+b.tps,0)/vals.length:0;
+  if(avg>0){ctx.setLineDash([5,4]);ctx.strokeStyle='#58a6ff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(padL,Y(avg));ctx.lineTo(W-padR,Y(avg));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#58a6ff';ctx.font='10px monospace';ctx.fillText('avg '+avg.toFixed(0),W-padR-52,Y(avg)-4);}
+  $('now-tps').textContent=avg.toFixed(1);
+  $('now-reqcount').textContent=vals.length;
+}
+async function updateLive(){
+  try{
+    const d=await get('/api/live?window=600');
+    livePts=d.points;drawLive();
+    if(d.points.length){const lr=d.points[d.points.length-1];
+      $('last-req').innerHTML=`<span style="color:var(--accent)">● ${lr.tps.toFixed(0)} tok/s</span> ${esc((lr.model||'').split('-').slice(-2).join('-'))}`;}
+    else{$('last-req').innerHTML='<span style="color:var(--dim)">○ no requests in window</span>';}
+    setStatus(true,'live');
+  }catch(e){setStatus(false,'live: '+e.message);}
+}
+
+// ---- context window chart (prompt tokens per request) ----
+let ctxPts=[];
+function drawContext(){
+  const cv=$('ctxChart');const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth,H=220;cv.width=W*dpr;cv.height=H*dpr;
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
+  const padL=52,padR=12,padT=12,padB=22;
+  const pw=W-padL-padR,ph=H-padT-padB;
+  if(!ctxPts.length){ctx.fillStyle='#5b6675';ctx.font='12px monospace';ctx.fillText('waiting for requests…',padL,ph/2);$('ctx-now').textContent='0';$('ctx-peak').textContent='0';return;}
+  const now=Date.now()/1000;const span=600;
+  const t0=now-span;
+  const maxV=Math.max(1000,...ctxPts.map(p=>p.prompt))*1.1;
+  const X=t=>padL+((t-t0)/span)*pw;
+  const Y=v=>padT+ph-(v/maxV)*ph;
+  // gridlines
+  ctx.strokeStyle='rgba(30,38,50,.6)';ctx.fillStyle='#5b6675';ctx.font='10px monospace';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const v=maxV*i/4;const y=Y(v);ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();ctx.fillText(fmt(v),6,y+3);}
+  // time labels (edge-aligned so the last one isn't clipped)
+  for(let i=0;i<=6;i++){const t=t0+span*i/6;ctx.textAlign=i===0?'left':(i===6?'right':'center');ctx.fillText(fmtT(t),i===0?padL:(i===6?W-padR:X(t)),H-6);}
+  ctx.textAlign='left';
+  const active=ctxPts.filter(p=>p.ts>=t0);
+  // connecting line (shows context growth across the conversation)
+  if(active.length>1){
+    ctx.beginPath();active.forEach((p,i)=>i?ctx.lineTo(X(p.ts),Y(p.prompt)):ctx.moveTo(X(p.ts),Y(p.prompt)));
+    ctx.strokeStyle='rgba(88,166,255,.5)';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  // one dot per request
+  active.forEach(p=>{ctx.beginPath();ctx.arc(X(p.ts),Y(p.prompt),3.2,0,Math.PI*2);ctx.fillStyle='#58a6ff';ctx.fill();});
+  const last=active[active.length-1];
+  const peak=Math.max(...active.map(p=>p.prompt));
+  $('ctx-now').textContent=fmt(last.prompt);
+  $('ctx-peak').textContent=fmt(peak);
+  $('ctx-model').innerHTML=esc((last.model||'').split('-').slice(-2).join('-'));
+}
+async function updateContext(){
+  try{
+    const d=await get('/api/context?window=600');
+    ctxPts=d.points;drawContext();
+  }catch(e){}
+}
+
+// ---- heatmap ----
+const HM_COLORS=['#161b22','#0e4429','#006d32','#26a641','#39d353'];
+function level(v,max){if(v<=0)return 0;const t=Math.log10(1+v)/Math.log10(1+max);return Math.min(4,Math.floor(t*4.999)+ (t>0?1:0));}
+function renderDaily(grid){
+  const el=$('dailyHm');el.innerHTML='';
+  const days=Object.keys(grid).sort();
+  if(!days.length){el.innerHTML='<div class="empty">no data yet</div>';return;}
+  const totals={};days.forEach(d=>totals[d]=Object.values(grid[d]).reduce((a,b)=>a+b,0));
+  const max=Math.max(...Object.values(totals),1);
+  // build weeks: start from Monday of the week containing the earliest day
+  const first=new Date(days[0]+'T00:00:00');
+  const start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));
+  const DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let cur=new Date(start);const today=new Date();today.setHours(0,0,0,0);
+  let week=0;
+  while(cur<=today){
+    const row=document.createElement('div');row.className='row';
+    if(week%1===0){const wl=document.createElement('div');wl.className='weeklabel';wl.textContent=cur.getMonth()===0?cur.getFullYear():'';row.appendChild(wl);}
+    else{const sp=document.createElement('div');sp.className='weeklabel';row.appendChild(sp);}
+    for(let d=0;d<7;d++){
+      const ds=cur.toISOString().slice(0,10);
+      const cell=document.createElement('div');cell.className='cell';
+      const v=totals[ds]||0;
+      cell.style.background=HM_COLORS[level(v,max)];
+      cell.title=`${ds}: ${fmt(v)} tokens`;
+      row.appendChild(cell);
+      cur.setDate(cur.getDate()+1);
+    }
+    el.appendChild(row);week++;
+  }
+  // scale legend
+  $('hmScale').innerHTML='<span>less</span>'+HM_COLORS.map(c=>`<span class="cell" style="background:${c}"></span>`).join('')+'<span>more</span>';
+}
+function renderHour(grid){
+  const hourTotals=new Array(24).fill(0);
+  Object.values(grid).forEach(byHour=>Object.entries(byHour).forEach(([h,v])=>hourTotals[+h]+=v));
+  const max=Math.max(...hourTotals,1);
+  const strip=$('hourStrip');strip.innerHTML='';
+  hourTotals.forEach((v,h)=>{
+    const d=document.createElement('div');d.className='h';
+    d.style.background=HM_COLORS[level(v,max)];
+    d.innerHTML=`<span class="tip">${String(h).padStart(2,'0')}:00 · ${fmt(v)} tok</span>`;
+    strip.appendChild(d);
+  });
+  const lab=$('hourLabels');lab.innerHTML='';
+  for(let h=0;h<24;h++){const s=document.createElement('span');s.textContent=h%3===0?h:'';lab.appendChild(s);}
+}
+async function updateHeatmap(){
+  try{const d=await get('/api/heatmap?days=90');renderDaily(d.grid);renderHour(d.grid);}catch(e){}
+}
+
+// ---- models ----
+async function updateModels(){
+  try{
+    const rows=await get('/api/models');
+    $('modelsTable').querySelector('tbody').innerHTML=rows.map(m=>`<tr>
+      <td class="name">${esc(m.model)}</td>
+      <td class="num">${fmt(m.requests)}</td>
+      <td class="num">${fmt(m.total_tokens)}</td>
+      <td class="num">${fmt(m.completion_tokens)}</td>
+      <td class="num">${m.avg_tps.toFixed(1)}</td>
+      <td class="num">${(m.cache_hit_rate*100).toFixed(0)}%</td>
+    </tr>`).join('')||'<tr><td colspan=6 class="empty">no data</td></tr>';
+  }catch(e){}
+}
+
+// ---- sessions ----
+async function updateSessions(){
+  try{
+    const rows=await get('/api/sessions');
+    $('sessionsTable').querySelector('tbody').innerHTML=rows.slice(0,12).map(s=>`<tr>
+      <td class="name">${s.active?'<span class="pill stop">●</span> ':''}${esc((s.display_name||s.id).slice(0,18))}</td>
+      <td>${esc(s.source||'')}</td>
+      <td class="num">${fmt(s.input_tokens)}</td>
+      <td class="num">${fmt(s.output_tokens)}</td>
+      <td>${s.started_at?fmtDT(s.started_at):''}</td>
+    </tr>`).join('')||'<tr><td colspan=5 class="empty">no sessions</td></tr>';
+  }catch(e){}
+}
+
+// ---- requests ----
+async function updateRequests(){
+  try{
+    const rows=await get('/api/requests?limit=14');
+    $('requestsTable').querySelector('tbody').innerHTML=rows.map(r=>{
+      const cls=r.finish_reason==='tool_calls'?'tool':(r.finish_reason==='stop'?'stop':'len');
+      return `<tr>
+        <td>${fmtT(r.ts)}</td>
+        <td class="name">${esc(r.model)}</td>
+        <td class="num">${fmt(r.prompt_tokens)}</td>
+        <td class="num">${fmt(r.completion_tokens)}</td>
+        <td class="num">${r.decode_tps.toFixed(1)}</td>
+        <td class="num">${r.ttft!=null?r.ttft.toFixed(1)+'s':'–'}</td>
+        <td><span class="pill ${cls}">${esc(r.finish_reason)}</span></td>
+      </tr>`;}).join('')||'<tr><td colspan=7 class="empty">no requests yet</td></tr>';
+  }catch(e){}
+}
+
+// ---- memory ----
+async function updateMemory(){
+  try{
+    const m=await get('/api/memory');
+    const ceil=m.ceiling_bytes||1;
+    $('m-model').textContent=fmtB(m.model_bytes);
+    $('m-head').textContent=fmtB(m.headroom_bytes);
+    $('m-wired').textContent=fmtB(m.wired_bytes);
+    $('b-model').style.width=Math.min(100,m.model_bytes/ceil*100)+'%';
+    $('b-head').style.width=Math.min(100,m.headroom_bytes/ceil*100)+'%';
+    $('b-wired').style.width=Math.min(100,m.wired_bytes/ceil*100)+'%';
+    // context window
+    if(m.max_context_tokens){
+      $('m-ctx').textContent=(m.context_frac*100).toFixed(1)+'%';
+      $('b-ctx').style.width=Math.min(100,m.context_frac*100)+'%';
+      const who=m.context_session?` · ${esc((m.context_session.display_name||m.context_session.id).slice(0,16))}`:'';
+      $('m-ctx-sub').textContent=`${fmt(m.context_tokens)} / ${fmt(m.max_context_tokens)} tokens ≈ ${fmtB(m.context_est_bytes)} KV${who}`;
+    }else{
+      $('m-ctx').textContent='–';$('b-ctx').style.width='0%';$('m-ctx-sub').textContent='no active context';
+    }
+    $('using-model').innerHTML=`Loaded: <span style="color:var(--fg)">${esc(m.loaded_model||'–')}</span>`+
+      (m.active_model&&m.active_model!==m.loaded_model?` · active: <span style="color:var(--accent)">${esc(m.active_model)}</span>`:'');
+    $('using-sessions').innerHTML=m.active_sessions.length?m.active_sessions.map(s=>`<div class="sess">
+      <div class="l"><span class="badge ${s.ended_at==null?'active':''}">${esc(s.source||'?')}</span>
+      <span class="name">${esc((s.display_name||s.id).slice(0,22))}</span></div>
+      <div class="r">${fmt(s.input_tokens)} in · ${fmt(s.output_tokens)} out</div>
+    </div>`).join(''):'<div class="empty">no active sessions</div>';
+  }catch(e){}
+}
+
+// ---- boot ----
+function boot(){
+  updateSummary();updateLive();updateHeatmap();updateModels();updateSessions();updateRequests();updateMemory();updateTokens();updateStats();updateContext();
+  setInterval(updateSummary,2000);
+  setInterval(updateLive,2000);
+  setInterval(updateRequests,3000);
+  setInterval(updateMemory,4000);
+  setInterval(updateTokens,2000);
+  setInterval(updateStats,5000);
+  setInterval(updateContext,3000);
+  setInterval(updateModels,10000);
+  setInterval(updateSessions,10000);
+  setInterval(updateHeatmap,30000);
+  window.addEventListener('resize',()=>{drawLive();drawContext();});
+}
+boot();
+</script>
+</body>
+</html>

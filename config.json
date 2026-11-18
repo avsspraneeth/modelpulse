@@ -1,0 +1,26 @@
+{
+  "_docs": {
+    "port": "Dashboard HTTP port (default 8787)",
+    "splash_url": "oMLX/Splash OpenAI server base URL (default http://localhost:8000)",
+    "omlx_home": "oMLX home dir holding logs/, usage.sqlite3, stats.json (default ~/.omlx)",
+    "omlx_log": "Optional: exact path to the oMLX server log (default {omlx_home}/logs/server.log)",
+    "omlx_usage_db": "Optional: exact path to oMLX usage.sqlite3 (default {omlx_home}/usage.sqlite3)",
+    "omlx_stats": "Optional: exact path to oMLX stats.json (default {omlx_home}/stats.json)",
+    "hermes_state_db": "Hermes state.db. 'auto' (default) = most recently active profile; or an explicit path like ~/.hermes/profiles/<name>/state.db",
+    "db_path": "Where ModelPulse stores its own persistent DB (default ~/modelpulse/pulse.db)",
+    "sample_interval": "Seconds between live samples (default 2.0)",
+    "decay_tau": "Live tok/s decay time-constant, seconds (default 8.0)",
+    "live_window": "Live chart window, seconds (default 600)"
+  },
+  "port": 8787,
+  "splash_url": "http://localhost:8000",
+  "omlx_home": "~/.omlx",
+  "hermes_state_db": "auto",
+  "db_path": "~/modelpulse/pulse.db",
+  "sample_interval": 2.0,
+  "decay_tau": 8.0,
+  "live_window": 600,
+  "omlx_log": null,
+  "omlx_usage_db": null,
+  "omlx_stats": null
+}

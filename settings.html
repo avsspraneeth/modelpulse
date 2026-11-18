@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ModelPulse · Settings</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#11161f; --panel2:#0d1219; --border:#1e2632;
+    --fg:#e6edf3; --muted:#8b98a9; --dim:#5b6675;
+    --accent:#39d353; --accent2:#58a6ff; --warn:#e3b341; --hot:#ff7b72;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased;margin:0}
+  a{color:var(--accent2);text-decoration:none}
+  code{font-family:var(--mono);font-size:12px;background:#0a0f16;padding:1px 5px;border-radius:4px}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,14,20,.85);backdrop-filter:blur(8px);z-index:10}
+  .brand{font-weight:700;font-size:17px;letter-spacing:.3px}
+  main{padding:24px 22px 60px;max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+  .panel h2{margin:0 0 4px;font-size:15px;font-weight:600}
+  .panel .desc{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:5px}
+  .field input{width:100%;background:#0a0f16;border:1px solid var(--border);border-radius:7px;padding:9px 11px;color:var(--fg);font-family:var(--mono);font-size:13px}
+  .field input:focus{outline:none;border-color:var(--accent2)}
+  .field .hint{font-size:11px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  @media(max-width:640px){.grid-2{grid-template-columns:1fr}}
+  .src{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(30,38,50,.5);font-size:12.5px;gap:12px}
+  .src:last-child{border-bottom:none}
+  .src .l{display:flex;align-items:center;gap:9px;flex-shrink:0}
+  .src .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .src .dot.ok{background:var(--accent)} .src .dot.miss{background:var(--hot)}
+  .src .name{color:var(--fg)}
+  .src .path{font-family:var(--mono);color:var(--dim);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+  .btns{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  button{background:var(--accent);color:#04140a;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+  button.secondary{background:#16202c;color:var(--fg)}
+  button:hover{filter:brightness(1.1)}
+  .msg{margin-top:14px;font-size:12.5px;font-family:var(--mono);padding:10px 12px;border-radius:8px;display:none;line-height:1.5}
+  .msg.ok{display:block;background:rgba(57,211,83,.1);color:var(--accent);border:1px solid rgba(57,211,83,.3)}
+  .msg.err{display:block;background:rgba(255,123,114,.1);color:var(--hot);border:1px solid rgba(255,123,114,.3)}
+  footer{padding:16px 22px;color:var(--dim);font-size:11px;font-family:var(--mono);border-top:1px solid var(--border);text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">ModelPulse · Settings</div>
+  <a href="/" style="font-size:12px;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);padding:5px 10px;border-radius:7px">← Dashboard</a>
+</header>
+<main>
+  <section class="panel">
+    <h2>Data sources</h2>
+    <div class="desc">Where ModelPulse reads token usage and attribution from. <span style="color:var(--accent)">●</span> = reachable, <span style="color:var(--hot)">●</span> = missing. Fix any missing path below, then Save &amp; Apply.</div>
+    <div id="sources"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Configuration</h2>
+    <div class="desc">Point ModelPulse at your oMLX / Hermes / Splash setup. Leave an optional path blank to use the default derived from <code>omlx_home</code>. <code>hermes_state_db</code> = <code>auto</code> picks the most recently active profile.</div>
+    <form id="cfgForm">
+      <div class="grid-2">
+        <div class="field"><label>Dashboard port</label><input name="port" type="number" min="1" max="65535"><div class="hint">restart required to change</div></div>
+        <div class="field"><label>Splash / oMLX server URL</label><input name="splash_url" type="text"><div class="hint">OpenAI-compatible server base</div></div>
+        <div class="field"><label>oMLX home</label><input name="omlx_home" type="text"><div class="hint">holds logs/, usage.sqlite3, stats.json</div></div>
+        <div class="field"><label>ModelPulse DB path</label><input name="db_path" type="text"><div class="hint">where history is stored</div></div>
+        <div class="field"><label>oMLX server.log (optional)</label><input name="omlx_log" type="text"><div class="hint">default: {omlx_home}/logs/server.log</div></div>
+        <div class="field"><label>oMLX usage.sqlite3 (optional)</label><input name="omlx_usage_db" type="text"><div class="hint">default: {omlx_home}/usage.sqlite3</div></div>
+        <div class="field"><label>oMLX stats.json (optional)</label><input name="omlx_stats" type="text"><div class="hint">default: {omlx_home}/stats.json</div></div>
+        <div class="field"><label>Hermes state.db</label><input name="hermes_state_db" type="text"><div class="hint">"auto" or an explicit path</div></div>
+        <div class="field"><label>Sample interval (s)</label><input name="sample_interval" type="number" step="0.5" min="0.5"><div class="hint">live sampler cadence</div></div>
+        <div class="field"><label>Live window (s)</label><input name="live_window" type="number" step="30" min="60"><div class="hint">chart history length</div></div>
+        <div class="field"><label>Decay τ (s)</label><input name="decay_tau" type="number" step="0.5" min="1"><div class="hint">live tok/s decay constant</div></div>
+      </div>
+      <div class="btns">
+        <button type="submit">Save &amp; Apply</button>
+        <button type="button" class="secondary" id="saveOnly">Save only</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </form>
+  </section>
+</main>
+<footer>ModelPulse · config: <span id="cfgPath"></span></footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const FIELDS=['port','splash_url','omlx_home','db_path','omlx_log','omlx_usage_db','omlx_stats','hermes_state_db','sample_interval','decay_tau','live_window'];
+async function get(p){const r=await fetch(p,{cache:'no-store'});if(!r.ok)throw new Error(p+' '+r.status);return r.json();}
+function esc(s){return(s||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));}
+function showMsg(text,ok){const m=$('msg');m.textContent=text;m.className='msg '+(ok?'ok':'err');}
+
+async function load(){
+  try{
+    const d=await get('/api/config');
+    $('cfgPath').textContent=d.config_path;
+    $('sources').innerHTML=d.sources.map(s=>`
+      <div class="src">
+        <div class="l"><span class="dot ${s.ok?'ok':'miss'}"></span>
+        <span class="name">${esc(s.label)}</span></div>
+        <span class="path" title="${esc(s.path)}">${esc(s.path)}</span>
+      </div>`).join('');
+    const c=d.config;
+    for(const k of FIELDS){
+      const el=$('cfgForm').elements[k];
+      if(el) el.value=(c[k]==null?'':c[k]);
+    }
+  }catch(e){showMsg('load failed: '+e.message,false);}
+}
+
+function readPayload(){
+  const f=$('cfgForm');const payload={};
+  for(const k of FIELDS){
+    const v=f.elements[k].value;
+    payload[k]=(v===''?null:v);
+  }
+  return payload;
+}
+
+async function save(){
+  const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(readPayload())});
+  return r.json();
+}
+async function apply(){
+  const r=await fetch('/api/config/reload',{method:'POST'});
+  return r.json();
+}
+
+$('cfgForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  try{
+    const d=await save();
+    if(!d.ok){showMsg(d.message,false);return;}
+    const d2=await apply();
+    showMsg(d.message+' · '+d2.message+(d2.needs_restart?' — restart the service to apply the port change.':''),true);
+    load();
+  }catch(err){showMsg('failed: '+err.message,false);}
+});
+
+$('saveOnly').addEventListener('click',async()=>{
+  try{
+    const d=await save();
+    showMsg(d.message+(d.ok?' (not applied — click Save & Apply to reload)':''),d.ok);
+    if(d.ok) load();
+  }catch(err){showMsg('save failed: '+err.message,false);}
+});
+
+load();
+</script>
+</body>
+</html>
