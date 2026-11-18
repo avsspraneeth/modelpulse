@@ -6,7 +6,7 @@
 
 A local LLM usage dashboard for **oMLX + Hermes Agent** — live throughput, persistent heatmaps, per-model stats, and memory/context attribution. Built to be better than the stock oMLX dashboard, with its **own persistent database** so history survives oMLX's 90-day stats rotation.
 
-![ModelPulse Dashboard](preview.png)
+![ModelPulse Dashboard](assets/preview.png)
 
 ## What it shows
 
@@ -28,49 +28,49 @@ A local LLM usage dashboard for **oMLX + Hermes Agent** — live throughput, per
 
 Full dashboard with all stat cards, live throughput chart, and recent requests table.
 
-![Dashboard Overview](dashboard-overview.png)
+![Dashboard Overview](docs/screenshots/dashboard-overview.png)
 
 ### Live Throughput
 
 Real-time tok/s chart over the last 10 minutes with window average and request count.
 
-![Live Throughput](live-throughput.png)
+![Live Throughput](docs/screenshots/live-throughput.png)
 
 ### Memory Panel
 
 GPU memory breakdown showing model weights, headroom, and OS wired memory.
 
-![Memory Panel](memory-panel.png)
+![Memory Panel](docs/screenshots/memory-panel.png)
 
 ### Context Window
 
 Prompt tokens per request chart showing context window utilization over time.
 
-![Context Window](context-window.png)
+![Context Window](docs/screenshots/context-window.png)
 
 ### Token Usage
 
 Live token breakdown bars — In (fresh input), Cached, Out (output), and Think (reasoning).
 
-![Token Usage](token-usage.png)
+![Token Usage](docs/screenshots/token-usage.png)
 
 ### Stats Panel
 
 Live stats (tokens/min, active requests, TTFT, peak tok/s) and lifetime stats (today/week, cache savings, reasoning ratio, peak day, generation time).
 
-![Stats Panel](stats-panel.png)
+![Stats Panel](docs/screenshots/stats-panel.png)
 
 ### Usage Heatmap
 
 GitHub-style contribution grid showing token usage over the last 90 days.
 
-![Usage Heatmap](usage-heatmap.png)
+![Usage Heatmap](docs/screenshots/usage-heatmap.png)
 
 ### Models Table
 
 Per-model cumulative stats — requests, tokens, tok/s, and cache hit rate.
 
-![Models Table](models-table.png)
+![Models Table](docs/screenshots/models-table.png)
 
 ## The universal design
 
@@ -195,13 +195,33 @@ Open **http://127.0.0.1:8787/settings** (or the ⚙ Settings link in the header)
 | `POST /api/config` | Validate + write `config.json` |
 | `POST /api/config/reload` | Re-read `config.json` and apply live |
 
+## Project Structure
+
+```
+modelpulse/
+├── src/                  # Source code
+│   ├── modelpulse.py     # Collector + log tailer + HTTP API (stdlib only)
+│   ├── dashboard.html    # Frontend (vanilla JS + Canvas)
+│   └── settings.html     # Settings page (edit paths + apply live)
+├── docs/                 # Documentation
+│   ├── ModelPulse_Beginners_Guide.pdf
+│   └── screenshots/      # Dashboard screenshots for README
+├── assets/               # Static assets
+│   └── preview.png       # Dashboard preview image
+├── run.sh                # Launcher / launchd installer
+├── config.json           # Configuration (source paths, port)
+├── README.md             # This file
+├── LICENSE               # MIT License
+└── .gitignore
+```
+
 ## Files
 
 | File | Description |
 |---|---|
-| `modelpulse.py` | Collector + log tailer + ingesters + HTTP API (stdlib only, no deps) |
-| `dashboard.html` | The frontend (vanilla JS + Canvas, no build step) |
-| `settings.html` | The settings page (edit source paths + apply live) |
+| `src/modelpulse.py` | Collector + log tailer + ingesters + HTTP API (stdlib only, no deps) |
+| `src/dashboard.html` | The frontend (vanilla JS + Canvas, no build step) |
+| `src/settings.html` | The settings page (edit source paths + apply live) |
 | `config.json` | Your settings (source paths, port). Auto-created, self-documenting |
 | `pulse.db` | Persistent SQLite (auto-created, not tracked in git) |
 | `run.sh` | Launcher / launchd installer |

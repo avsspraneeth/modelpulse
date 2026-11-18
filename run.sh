@@ -23,7 +23,7 @@ is_running() {
 case "$cmd" in
   start)
     if is_running; then echo "already running (pid $(cat "$PIDFILE"))"; exit 0; fi
-    nohup "$PY" modelpulse.py --port "$PORT" >> modelpulse.out.log 2>&1 &
+    nohup "$PY" src/modelpulse.py --port "$PORT" >> modelpulse.out.log 2>&1 &
     echo $! > "$PIDFILE"
     sleep 2
     if is_running; then echo "ModelPulse started on http://127.0.0.1:$PORT (pid $(cat "$PIDFILE"))"; else echo "failed to start — check modelpulse.out.log"; exit 1; fi
@@ -35,10 +35,10 @@ case "$cmd" in
     if is_running; then echo "running (pid $(cat "$PIDFILE")) on :$PORT"; else echo "not running"; fi
     ;;
   check)
-    "$PY" modelpulse.py --check
+    "$PY" src/modelpulse.py --check
     ;;
   config)
-    "$PY" modelpulse.py --init-config >/dev/null 2>&1
+    "$PY" src/modelpulse.py --init-config >/dev/null 2>&1
     echo "Config file: $PWD/config.json"
     echo "Edit it to point ModelPulse at your oMLX / Hermes / Splash setup, then:"
     echo "  ./run.sh check     # verify all paths resolve"
@@ -55,7 +55,7 @@ case "$cmd" in
   <key>ProgramArguments</key>
   <array>
     <string>$PY</string>
-    <string>$PWD/modelpulse.py</string>
+    <string>$PWD/src/modelpulse.py</string>
     <string>--port</string><string>$PORT</string>
   </array>
   <key>WorkingDirectory</key><string>$PWD</string>
@@ -77,6 +77,6 @@ PLIST
     ;;
   *)
     # foreground
-    exec "$PY" modelpulse.py --port "$PORT"
+    exec "$PY" src/modelpulse.py --port "$PORT"
     ;;
 esac
